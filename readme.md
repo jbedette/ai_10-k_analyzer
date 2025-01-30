@@ -13,9 +13,11 @@ As a learning tool I am analyzing 10-k's from the S&P 500
 2. process data
 `in-progress` processing data from html format, need to check correctness
 3. Determine tools
-
+    finbert
 4. Early Data Analysis
+    skipping for now
 5. Summarize
+
 6. Sentiment & Financial Analysis
 7. Build ML pipeline
 8. Automate analysis
@@ -38,14 +40,13 @@ pqdm
 `python -m pip install --upgrade pip`
 
 4. install necessary packages
+```
+pip install transformers torch  sec-edgar-downloader nltk spacy pandas tqdm matplotlib wordcloud seaborn
+python -m spacy download en_core_web_sm
+python -c "import nltk; nltk.download('punkt')"
+python -c "import nltk; nltk.download('punkt_tab')"
 
-`pip install sec-edgar-downloader nltk spacy pandas tqdm`
-
-`python -m spacy download en_core_web_sm`
-
-`python -c "import nltk; nltk.download('punkt')"`
-
-`python -c "import nltk; nltk.download('punkt_tab')"`
+```
 
 ## prepare file structure
 Data locations
@@ -82,6 +83,8 @@ todo: before beginning data retrieval from edgar, make an api call for a current
 currently this destroys the initally retrieved data, I need more hd space
 
 `python process.py`
+
+##
 
 
 

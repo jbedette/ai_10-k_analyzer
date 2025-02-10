@@ -41,8 +41,8 @@ pqdm
 
 4. install necessary packages
 ```
-pip install transformers torch  sec-edgar-downloader nltk spacy pandas tqdm matplotlib wordcloud seaborn
-python -m spacy download en_core_web_sm
+pip install transformers torch  sec-edgar-downloader nltk spacy pandas tqdm matplotlib wordcloud seaborn sentencepiece
+python -m spacy download en_core_web_sm deep-translator tiktoken protobuf blobfile
 python -c "import nltk; nltk.download('punkt')"
 python -c "import nltk; nltk.download('punkt_tab')"
 

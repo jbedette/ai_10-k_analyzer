@@ -2,6 +2,7 @@ import os
 import random
 import logging
 import nltk
+import datetime
 import pandas as pd
 from tqdm import tqdm
 from collections import Counter
@@ -53,37 +54,28 @@ MAX_TOKENS = 512
 # Parallel Processing Configuration
 MAX_WORKERS = 4
 
-ACTION_COUNT = 0
-
-def action_count():
-    ACTION_COUNT += 1
-
 def split_into_chunks(text, max_tokens=MAX_TOKENS):
     """Splits text into chunks of max_tokens size."""
-    action_count()
-    logging.info("{ACTION_COUNT}:split_into_chunks")
+    logging.info("split_into_chunks")
     words = text.split()
     return [" ".join(words[i:i+max_tokens]) for i in range(0, len(words), max_tokens)]
 
 def paraphrase_text(text):
     """Generates a paraphrased version of the given summary."""
-    action_count()
-    logging.info("{ACTION_COUNT}:paraphrase_text")
+    logging.info("paraphrase_text")
     truncated_text = text[:MAX_TOKENS]
     return paraphraser(truncated_text, max_length=min(len(truncated_text.split()) - 1, 150), num_return_sequences=1, do_sample=True)[0]["generated_text"]
 
 def shuffle_sentences(text):
     """Shuffles sentences in the given text to create a new variation."""
-    action_count()
-    logging.info("{ACTION_COUNT}:shuffle_sentences")
+    logging.info("shuffle_sentences")
     sentences = text.split(". ")
     random.shuffle(sentences)
     return ". ".join(sentences)
 
 def back_translate(text, lang="fr"):
     """Translates text to another language and back to English."""
-    action_count()
-    logging.info("{ACTION_COUNT}:back_translate")
+    logging.info("translate_text")
     try:
         truncated_text = text[:MAX_TOKENS]
         translated = GoogleTranslator(source="en", target=lang).translate(truncated_text)
@@ -94,22 +86,19 @@ def back_translate(text, lang="fr"):
 
 def expand_text(text):
     """Generates a longer variation of the summary."""
-    action_count()
-    logging.info("{ACTION_COUNT}:expand_text")
+    logging.info("expand_text")
     truncated_text = text[:MAX_TOKENS]
     return summarizer(truncated_text, max_length=min(len(truncated_text.split()) * 2 - 1, 250), min_length=min(len(truncated_text.split()) - 1, 100), do_sample=False)[0]["summary_text"]
 
 def compress_text(text):
     """Generates a shorter version of the summary."""
-    action_count()
-    logging.info("{ACTION_COUNT}:compress_text")
+    logging.info("compress_text")
     truncated_text = text[:MAX_TOKENS]
     return summarizer(truncated_text, max_length=max(len(truncated_text.split()) // 2 - 1, 50), min_length=max(len(truncated_text.split()) // 3 - 1, 20), do_sample=False)[0]["summary_text"]
 
 def replace_with_synonyms(text):
     """Replaces key financial words with synonyms to introduce variation."""
-    action_count()
-    logging.info("{ACTION_COUNT}:replace_with_synonyms")
+    logging.info("replace_with_synonyms")
     words = text.split()
     for i, word in enumerate(words):
         synonyms = wordnet.synsets(word)
@@ -124,7 +113,7 @@ def augment_text(text):
     return [
         paraphrase_text(text),
         shuffle_sentences(text),
-        back_translate(text),
+        # back_translate(text),
         expand_text(text),
         compress_text(text),
         replace_with_synonyms(text)
@@ -161,7 +150,6 @@ def import_text_files(input_folder):
 def export_dataset(df, output_folder):
     """Exports the augmented dataset into the specified folder with a timestamp."""
     logging.info("[5/5] Exporting dataset...")
-    import datetime
     timestamp_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     output_file = os.path.join(output_folder, f"augmented_train_{timestamp_id}.csv")
     df.to_csv(output_file, index=False)
@@ -190,6 +178,8 @@ if __name__ == "__main__":
     output_folder = "D:/fin_data_dir/augmented_reports"
     os.makedirs(output_folder, exist_ok=True)
 
+    timestamp_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    print(timestamp_id)
     input_folder = "D:/fin_data_dir/cleaned_renamed/test"
     augment_dataset(input_folder, output_folder)
 

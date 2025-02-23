@@ -2,3 +2,4 @@ cleaned_10k_reports/
 sec-edgar-filings/
 .venv/
 scratch/
+augmentation_pipeline.log

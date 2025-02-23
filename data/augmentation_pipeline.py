@@ -22,7 +22,7 @@ logging.getLogger("tranformers").setLevel(logging.ERROR)
 
 # Setup logging
 logging.basicConfig(
-    filename='augmentation_pipeline.log',
+    filename='./data/augmentation_pipeline.log',
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
@@ -221,7 +221,7 @@ def augment_summary(text):
 
 def import_text_files(input_folder):
     """Reads 10 random .txt files from a folder, prints their names, and combines them into a DataFrame."""
-    logging.info("[2/5] Importing 10 random text files...")
+    logging.info("[2/5] Importing 1 random text file...")
     data = []
     txt_files = []
     
@@ -232,7 +232,7 @@ def import_text_files(input_folder):
                 txt_files.append(os.path.join(root, file))
     
     # Select 10 random files (if there are less than 10, select all of them)
-    sampled_files = random.sample(txt_files, k=min(10, len(txt_files)))
+    sampled_files = random.sample(txt_files, k=min(1, len(txt_files)))
     
     # Print out the names of the selected files
     print("Selected files:")
@@ -293,6 +293,8 @@ if __name__ == "__main__":
     timestamp_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     print(timestamp_id)
     input_folder = "./data/cleaned_10k_reports"
-    augment_dataset(input_folder, output_folder)
+    for i in range(10):
+        print(f"working on #{i+1} of 10")
+        augment_dataset(input_folder, output_folder)
 
 

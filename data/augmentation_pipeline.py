@@ -135,6 +135,32 @@ def augment_summary(text):
     return augmented_versions
 
 def import_text_files(input_folder):
+    """Reads 10 random .txt files from a folder, prints their names, and combines them into a DataFrame."""
+    logging.info("[2/5] Importing 10 random text files...")
+    data = []
+    txt_files = []
+    
+    # Walk through the folder and collect .txt file paths
+    for root, _, files in os.walk(input_folder):
+        for file in files:
+            if file.endswith(".txt"):
+                txt_files.append(os.path.join(root, file))
+    
+    # Select 10 random files (if there are less than 10, select all of them)
+    sampled_files = random.sample(txt_files, k=min(10, len(txt_files)))
+    
+    # Print out the names of the selected files
+    print("Selected files:")
+    for file_path in sampled_files:
+        print(os.path.basename(file_path))
+        with open(file_path, "r", encoding="utf-8") as f:
+            text = f.read()
+            data.append({"report_text": text, "summary_text": text})
+    
+    logging.info(f"✅ Imported {len(data)} text files.")
+    return pd.DataFrame(data)
+
+def all_import_text_files(input_folder):
     """Reads all .txt files from a folder and combines them into a DataFrame."""
     logging.info("[2/5] Importing text files...")
     data = []
@@ -175,35 +201,12 @@ def augment_dataset(input_folder, output_folder):
 if __name__ == "__main__":
     paths = ["A","B","C","D","F","G","H","I","J","K"]
     logging.info("🚀 Starting data augmentation pipeline...")
-    output_folder = "D:/fin_data_dir/augmented_reports"
+    output_folder = "augmented_reports"
     os.makedirs(output_folder, exist_ok=True)
 
     timestamp_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     print(timestamp_id)
-    input_folder = "D:/fin_data_dir/cleaned_renamed/test"
+    input_folder = "cleaned_10k_reports"
     augment_dataset(input_folder, output_folder)
 
-    # for path in paths:
-    #     logging.info("==== Starting folder {path}")
-    #     input_folder = "D:/fin_data_dir/cleaned_renamed/" + path
-    #     augment_dataset(input_folder, output_folder)
-    # logging.info("🎉 Data augmentation completed successfully!")
-
-# if __name__ == "__main__":
-#     # print("🚀 Starting data augmentation pipeline...")
-#     # input_folder = "D:/fin_data_dir/cleaned_renamed/F"
-#     # output_folder = "D:/fin_data_dir/augmented_reports"
-#     # os.makedirs(output_folder, exist_ok=True)
-#     # augment_dataset(input_folder, output_folder)
-#     # print("🎉 Data augmentation completed successfully!")
-
-#     paths = ["A","B","C","D","F","G","H","I","J","K"]
-#     print("🚀 Starting data augmentation pipeline...")
-#     output_folder = "D:/fin_data_dir/augmented_reports"
-#     os.makedirs(output_folder, exist_ok=True)
-#     for path in paths:
-#         print(f"==== Starting folder {path}")
-#         input_folder = "D:/fin_data_dir/cleaned_renamed/" + path
-#         augment_dataset(input_folder, output_folder)
-#     print("🎉 Data augmentation completed successfully!")
 

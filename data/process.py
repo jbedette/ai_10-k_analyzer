@@ -5,6 +5,7 @@ import nltk
 from tqdm import tqdm
 from nltk.tokenize import sent_tokenize
 nltk.download('punkt')
+nltk.download('punkt_tab')
 
 # Load NLP Model
 nlp = spacy.load("en_core_web_sm")
@@ -57,17 +58,18 @@ if os.path.exists(PARENT_OUTPUT_FOLDER):
             os.rmdir(os.path.join(root, dir))
 
 # Walk through all subdirectories in input folder
+count = 0
 for root, _, files in os.walk(PARENT_INPUT_FOLDER):
     for filename in tqdm(files):
         if filename.endswith(".txt"):
+            count += 1
             input_path = os.path.join(root, filename)
 
             # Construct relative path for output
             relative_path = os.path.relpath(root, PARENT_INPUT_FOLDER)
-            output_dir = os.path.join(PARENT_OUTPUT_FOLDER, relative_path)
-            os.makedirs(output_dir, exist_ok=True)
+            write_name = relative_path.split("/",1)[0] + str(count) + ".txt"
 
-            output_path = os.path.join(output_dir, filename)
+            output_path = os.path.join(PARENT_OUTPUT_FOLDER, write_name)
 
             with open(input_path, "r", encoding="utf-8") as f:
                 text = f.read()

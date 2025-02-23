@@ -53,4 +53,4 @@ for symbol in ticker_symbols:
     except ValueError as e:
         invalid.append(symbol)
         print(f"skipping {symbol} due to err: {e}")
-    print(invalid)
+print(invalid)

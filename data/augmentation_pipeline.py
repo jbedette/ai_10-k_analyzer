@@ -40,6 +40,7 @@ except AttributeError:
 logging.info("[1/5] Loading models...")
 paraphraser = pipeline("text2text-generation", model="Vamsi/T5_Paraphrase_Paws", device=0)  # GPU-accelerated
 summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6", device=0)  # GPU-accelerated
+# summarizer = pipeline("summarization", model="t5-small", device=0) 
 logging.info("✅ Faster models loaded.")
 
 

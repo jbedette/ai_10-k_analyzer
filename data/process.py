@@ -17,15 +17,20 @@ PARENT_OUTPUT_FOLDER = "cleaned_10k_reports"
 # Ensure output folder exists
 os.makedirs(PARENT_OUTPUT_FOLDER, exist_ok=True)
 
-# Function to clean text
+
 def clean_text(text):
-    """Cleans 10-K text by removing unwanted characters and sections."""
+    """Cleans 10-K text by removing unwanted characters, metadata, and formatting noise."""
     text = text.lower()  # Convert to lowercase
+    text = re.sub(r'<[^>]+>', ' ', text)  # Remove HTML/SGML tags
+    text = re.sub(r'\b(SECHEADER|MICINFO|FILM NUMBER|IRS NUMBER|ACCESSION NUMBER)\b.*', '', text, flags=re.IGNORECASE)  # Remove metadata sections
+    text = re.sub(r'\b(NBSP|BR|PAGEBREAK|HR)\b', ' ', text)  # Remove encoded spaces and unnecessary markers
     text = re.sub(r'\n+', '\n', text)  # Normalize line breaks
     text = re.sub(r'\s+', ' ', text)  # Remove extra spaces
     text = re.sub(r'[^\w\s]', '', text)  # Remove special characters
     text = re.sub(r'\d+', '', text)  # Remove numbers
+    text = re.sub(r'\b(form k|table of contents|forward-looking statements)\b.*', '', text, flags=re.IGNORECASE)  # Remove common noise phrases in SEC filings
     return text.strip()
+
 
 # Function to chunk document by section headers
 def chunk_text(text):

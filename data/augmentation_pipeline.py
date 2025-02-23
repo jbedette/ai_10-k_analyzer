@@ -4,14 +4,17 @@ import logging
 import nltk
 import datetime
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from transformers import pipeline
 from transformers.utils.logging import set_verbosity_error
 from deep_translator import GoogleTranslator, exceptions
 from nltk.corpus import wordnet
+# from functools import lru_cache
 import warnings
+
 
 warnings.filterwarnings("ignore",message=".*max_length.*")
 set_verbosity_error()
@@ -38,12 +41,15 @@ except AttributeError:
 
 # Load models
 logging.info("[1/5] Loading models...")
-paraphraser = pipeline("text2text-generation", model="Vamsi/T5_Paraphrase_Paws", device=0)  # GPU-accelerated
-summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6", device=0)  # GPU-accelerated
-# summarizer = pipeline("summarization", model="t5-small", device=0) 
-logging.info("✅ Faster models loaded.")
+# fastest with cpu in mind
+paraphraser = pipeline("text2text-generation", model="t5-small", device=0)  # Enable GPU if availabl
+summarizer = pipeline("summarization", model="t5-small", device=0) 
 
+# faster
+# paraphraser = pipeline("text2text-generation", model="Vamsi/T5_Paraphrase_Paws", device=0)  # GPU-accelerated
+# summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6", device=0)  # GPU-accelerated
 
+# slowest
 # logging.info("[1/5] Loading models...")
 # paraphraser = pipeline("text2text-generation", model="ramsrigouthamg/t5_paraphraser")
 # summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
@@ -67,12 +73,20 @@ def paraphrase_text(text):
     truncated_text = text[:MAX_TOKENS]
     return paraphraser(truncated_text, max_length=min(len(truncated_text.split()) - 1, 150), num_return_sequences=1, do_sample=True)[0]["generated_text"]
 
+
 def shuffle_sentences(text):
-    """Shuffles sentences in the given text to create a new variation."""
-    logging.info("shuffle_sentences")
-    sentences = text.split(". ")
-    random.shuffle(sentences)
-    return ". ".join(sentences)
+    """Shuffles sentences efficiently using NumPy."""
+    sentences = nltk.sent_tokenize(text)
+    np.random.shuffle(sentences)
+    return " ".join(sentences)
+
+
+# def shuffle_sentences(text):
+#     """Shuffles sentences in the given text to create a new variation."""
+#     logging.info("shuffle_sentences")
+#     sentences = text.split(". ")
+#     random.shuffle(sentences)
+#     return ". ".join(sentences)
 
 def back_translate(text, lang="fr"):
     """Translates text to another language and back to English."""
@@ -97,17 +111,68 @@ def compress_text(text):
     truncated_text = text[:MAX_TOKENS]
     return summarizer(truncated_text, max_length=max(len(truncated_text.split()) // 2 - 1, 50), min_length=max(len(truncated_text.split()) // 3 - 1, 20), do_sample=False)[0]["summary_text"]
 
+# Manual cache dictionary
+synonym_cache = {}
+
+def get_synonyms(word):
+    """Fetch synonyms from WordNet with a manual dictionary cache."""
+    if word in synonym_cache:
+        return synonym_cache[word]  # Return cached value
+
+    synonyms = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            synonyms.add(lemma.name().replace("_", " "))  # Replace underscores with spaces
+
+    # Cache the result to avoid redundant lookups
+    synonym_cache[word] = list(synonyms) if synonyms else [word]
+    return synonym_cache[word]
+
 def replace_with_synonyms(text):
-    """Replaces key financial words with synonyms to introduce variation."""
+    """Replaces words with synonyms using manual caching."""
     logging.info("replace_with_synonyms")
     words = text.split()
+    
     for i, word in enumerate(words):
-        synonyms = wordnet.synsets(word)
-        if synonyms:
-            synonym = random.choice(synonyms).lemmas()[0].name()
-            if(synonym != word):
-                words[i] = synonym
+        synonyms = get_synonyms(word)  # Use manual caching instead of calling wordnet multiple times
+        if len(synonyms) > 1:
+            words[i] = random.choice(synonyms)  # Random synonym selection
+
     return " ".join(words)
+
+# @lru_cache(maxsize=10000)  # Cache results to speed up repeated lookups
+# def replace_with_synonyms(word):
+#     """Fetch synonyms from WordNet with caching."""
+#     synonyms = set()
+#     for syn in wordnet.synsets(word):
+#         for lemma in syn.lemmas():
+#             synonyms.add(lemma.name())
+#     return list(synonyms) if synonyms else [word]
+
+
+# def replace_with_synonyms(text):
+#     """Replaces key financial words with synonyms to introduce variation."""
+#     logging.info("replace_with_synonyms")
+#     words = text.split()
+#     for i, word in enumerate(words):
+#         synonyms = wordnet.synsets(word)
+#         if synonyms:
+#             synonym = random.choice(synonyms).lemmas()[0].name()
+#             if(synonym != word):
+#                 words[i] = synonym
+#     return " ".join(words)
+
+# def replace_with_synonyms(text):
+#     """Replaces key financial words with synonyms to introduce variation."""
+#     logging.info("replace_with_synonyms")
+#     words = text.split()
+#     for i, word in enumerate(words):
+#         synonyms = wordnet.synsets(word)
+#         if synonyms:
+#             synonym = random.choice(synonyms).lemmas()[0].name()
+#             if(synonym != word):
+#                 words[i] = synonym
+#     return " ".join(words)
 
 def augment_text(text):
     """Applies multiple augmentation techniques to a text chunk."""
@@ -126,8 +191,13 @@ def augment_summary(text):
     chunks = split_into_chunks(text)
     augmented_versions = []
     
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        results = list(executor.map(augment_text, chunks))
+    # gpu
+    # with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    #     results = list(executor.map(augment_text, chunks))
+
+    # cpu
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        results = list(executor.map(func, tasks))
     
     for result in results:
         augmented_versions.extend(result)

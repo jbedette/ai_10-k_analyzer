@@ -11,8 +11,8 @@ nltk.download('punkt_tab')
 nlp = spacy.load("en_core_web_sm")
 
 # Define Parent Input and Output Folder Paths
-PARENT_INPUT_FOLDER = "sec-edgar-filings"
-PARENT_OUTPUT_FOLDER = "cleaned_10k_reports"
+PARENT_INPUT_FOLDER = "data/sec-edgar-filings"
+PARENT_OUTPUT_FOLDER = "data/cleaned_10k_reports"
 
 # Ensure output folder exists
 os.makedirs(PARENT_OUTPUT_FOLDER, exist_ok=True)

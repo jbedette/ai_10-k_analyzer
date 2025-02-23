@@ -27,11 +27,24 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Download required resources
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
-nltk.download('omw-1.4')
+
+def ensure_nltk_resources():
+    """Ensures required NLTK resources are available before downloading."""
+    resources = ['punkt', 'stopwords', 'wordnet', 'omw-1.4']
+    
+    for resource in resources:
+        try:
+            nltk.data.find(f'tokenizers/{resource}')  # Check if the resource is available
+        except LookupError:
+            nltk.download(resource)  # Download only if missing
+
+
+
+# # Download required resources
+# nltk.download('punkt')
+# nltk.download('stopwords')
+# nltk.download('wordnet')
+# nltk.download('omw-1.4')
 
 try:
     wordnet.ensure_loaded()
@@ -59,7 +72,7 @@ summarizer = pipeline("summarization", model="t5-small", device=0)
 MAX_TOKENS = 512
 
 # Parallel Processing Configuration
-MAX_WORKERS = 4
+MAX_WORKERS = os.cpu_count() or 4
 
 def split_into_chunks(text, max_tokens=MAX_TOKENS):
     """Splits text into chunks of max_tokens size."""
@@ -190,14 +203,15 @@ def augment_summary(text):
     logging.info("🔄 Augmenting text...")
     chunks = split_into_chunks(text)
     augmented_versions = []
+    tasks = [text]
     
     # gpu
     # with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
     #     results = list(executor.map(augment_text, chunks))
 
     # cpu
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        results = list(executor.map(func, tasks))
+    with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        results = list(executor.map(augment_text, tasks))
     
     for result in results:
         augmented_versions.extend(result)
@@ -270,14 +284,15 @@ def augment_dataset(input_folder, output_folder):
     export_dataset(augmented_df, output_folder)
 
 if __name__ == "__main__":
-    paths = ["A","B","C","D","F","G","H","I","J","K"]
+    # paths = ["A","B","C","D","F","G","H","I","J","K"]
+    ensure_nltk_resources()
     logging.info("🚀 Starting data augmentation pipeline...")
-    output_folder = "augmented_reports"
+    output_folder = "./data/augmented_reports"
     os.makedirs(output_folder, exist_ok=True)
 
     timestamp_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     print(timestamp_id)
-    input_folder = "cleaned_10k_reports"
+    input_folder = "./data/cleaned_10k_reports"
     augment_dataset(input_folder, output_folder)
 
 

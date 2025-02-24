@@ -5,7 +5,6 @@ import nltk
 import datetime
 import pandas as pd
 import numpy as np
-import argparse
 from tqdm import tqdm
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -204,34 +203,26 @@ def augment_text(text):
         replace_with_synonyms(text)
     ]
 
-def augment_summary(text, gpu):
+def augment_summary(text):
     """Applies augmentation in chunks to avoid exceeding model limits."""
     logging.info("🔄 Augmenting text...")
     chunks = split_into_chunks(text)
-    executor_class = ThreadPoolExecutor if gpu else ProcessPoolExecutor
-    # augmented_versions = []
-    # tasks = [text]
+    augmented_versions = []
+    tasks = [text]
     
-    with executor_class(max_workers=MAX_WORKERS) as executor:
-        results = list(executor.map(augment_text,chunks))
-
-    logging.info("✅ Augmentation complete.")
-    return [item for sublist in results for item in sublist]
-
-    # # gpu
+    # gpu
     # with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
     #     results = list(executor.map(augment_text, chunks))
 
-    # # cpu
-    # with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-    #     results = list(executor.map(augment_text, tasks))
+    # cpu
+    with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        results = list(executor.map(augment_text, tasks))
     
-    # for result in results:
-    #     augmented_versions.extend(result)
+    for result in results:
+        augmented_versions.extend(result)
     
-    # logging.info("✅ Augmentation complete.")
-    # return augmented_versions
-    
+    logging.info("✅ Augmentation complete.")
+    return augmented_versions
 
 def import_text_files(input_folder):
     """Reads 10 random .txt files from a folder, prints their names, and combines them into a DataFrame."""
@@ -280,7 +271,7 @@ def export_dataset(df, output_folder):
     df.to_csv(output_file, index=False)
     logging.info(f"✅ Dataset saved to {output_file}")
 
-def augment_dataset(input_folder, output_folder,gpu):
+def augment_dataset(input_folder, output_folder):
     """Applies augmentation to all text files in the input folder and saves the results."""
     df = import_text_files(input_folder)
     augmented_data = []
@@ -288,7 +279,7 @@ def augment_dataset(input_folder, output_folder,gpu):
     
     for i, (_, row) in enumerate(tqdm(df.iterrows(), total=len(df))):
         text = row["summary_text"]
-        augmented_versions = augment_summary(text,gpu)
+        augmented_versions = augment_summary(text)
         
         for aug_text in augmented_versions:
             augmented_data.append({"report_text": row["report_text"], "summary_text": aug_text})
@@ -298,28 +289,9 @@ def augment_dataset(input_folder, output_folder,gpu):
     export_dataset(augmented_df, output_folder)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Augmentation Pipeline")
-    parser.add_argument("--gpu",action="store_true", help="User GPU if available")
-    parser.add_argument("--cpu", action="store_false", help="Use CPU ThreadPool instead of ProcessPool")
-    parser.add_argument("--fast", action="store_true", help="Load lowest weight text transform models")
-    parser.add_argument("--med", action="store_true", help="Load middling weight text transform models")
-    parser.add_argument("--slow", action="store_true", help="Load heaviest weight text transform models")
-    args = parser.parse_args()
-
-    # default False
-    gpu = args.gpu
-
-    # default lightest weight
-    speed = 0
-
-    if args.med:
-        speed = 1
-    elif args.slow:
-        speed = 2
-
-
+    # paths = ["A","B","C","D","F","G","H","I","J","K"]
     ensure_nltk_resources()
-    paraphraser, summarizer = load_models(speed)
+    paraphraser, summarizer = load_models(2)
     if paraphraser and summarizer:
         logging.info("✅ Models loaded.")
         logging.info("🚀 Starting data augmentation pipeline...")
@@ -331,7 +303,7 @@ if __name__ == "__main__":
         input_folder = "./data/cleaned_10k_reports"
         for i in range(10):
             print(f"working on #{i+1} of 10")
-            augment_dataset(input_folder, output_folder,gpu)
+            augment_dataset(input_folder, output_folder)
     else:
         logging.info("❌ Model loading Failed.")
 
